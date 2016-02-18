@@ -8,7 +8,6 @@
 //Link to the header file
 #include "SiftHelpers.h"
 
-
 int main(int argc, char **argv)
 {
   try {
@@ -38,12 +37,23 @@ int main(int argc, char **argv)
 				Image I(argv[i]);
 				images.push_back(I);
 			}
-		
+			
+			multimap<int,string> ranking;
 			for(int i = 0;i<images.size();++i)
 			{
-				Image::MatchSIFT(queryImage,images[i]);
+				int count = Image::MatchSIFT(queryImage,images[i]);
+				ranking.insert(make_pair(count,images[i].getName()));
 			}
-		
+			
+			multimap<int,string>::reverse_iterator rankingStart = ranking.rbegin();
+			multimap<int,string>::reverse_iterator rankingEnd = ranking.rend();
+			
+			int top10 = 0;
+			while(rankingStart != rankingEnd && ++top10 <= 10)
+			{
+				cout<<"Image = "<<rankingStart->second<<" Count = "<<rankingStart->first<<endl;
+				rankingStart++;
+			}			
 		}
 		else if(part == "part2")
 		{

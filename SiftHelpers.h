@@ -14,6 +14,16 @@
 using namespace cimg_library;
 using namespace std;
 
+	struct SiftDescriptorCompare
+	{
+		bool operator() (const SiftDescriptor& lhs, const SiftDescriptor& rhs) const
+		{
+			return lhs.row < rhs.row;
+		}
+	};
+
+typedef map<SiftDescriptor,SiftDescriptor,SiftDescriptorCompare> SiftDescriptorMap;
+
 class Image
 {	
 	string name;
@@ -31,6 +41,11 @@ class Image
 		descriptors = Sift::compute_sift(gray);
 	}
 	
+	string getName()
+	{
+		return name;
+	}
+	
 	const vector<SiftDescriptor>& getDescriptors() const
 	{
 		return descriptors;
@@ -41,23 +56,40 @@ class Image
 		return input_image;
 	}
 	
-	struct SiftDescriptorCompare
+	static void DrawImage(const Image& queryImage,const Image& image,SiftDescriptorMap& mapping)
 	{
-		bool operator() (const SiftDescriptor& lhs, const SiftDescriptor& rhs) const
+		CImg<double> queryImageData = queryImage.getImageData();
+		int queryHeight = queryImageData.height();
+		int queryWidth = queryImageData.width();
+		queryImageData.append(image.getImageData());
+		
+		SiftDescriptorMap::iterator mStart = mapping.begin();
+		SiftDescriptorMap::iterator mEnd = mapping.end();
+		
+		
+		const double yellow[] = {255.0,255.0,0.0};
+		while(mStart != mEnd)
 		{
-			return lhs.row < rhs.row;
+			const int y0 = mStart->first.row;
+			const int x0 = mStart->first.col;
+			const int y1 = mStart->second.row;
+			const int x1 = queryWidth + mStart->second.col;
+			
+			queryImageData.draw_line(x0,y0,x1,y1,yellow);
+			++mStart;	
 		}
-	};
-
-
-	static void MatchSIFT(const Image& queryImage,const Image& image)
+		
+		queryImageData.get_normalize(0,255).save("sift.png");
+	}
+	
+	static int MatchSIFT(const Image& queryImage,const Image& image)
 	{
 		const vector<SiftDescriptor> queryDescriptors = queryImage.getDescriptors();
 		const vector<SiftDescriptor> imageDescriptors = image.getDescriptors();
 		
-		double distance = 0.0;
+		//double distance = 0.0;
 		
-		map<SiftDescriptor,SiftDescriptor,SiftDescriptorCompare> mapping;
+		SiftDescriptorMap mapping;
 		int count = 0;
 			
 		for(int i = 0;i<queryDescriptors.size();++i)
@@ -89,20 +121,19 @@ class Image
 			if(min/second_min < 0.8)
 			{
 				count++;
-				cout<<min<<",";
 			
 				SiftDescriptor q = queryDescriptors[i];
 				SiftDescriptor im = imageDescriptors[descriptor];
 				mapping[q] = im;
+				
+				//distance+=min/second_min;
 			}
-			distance+=min;
+			
 		}
-		cout<<"Count = "<<count<<endl;
 		
-		CImg<double> queryImageData = queryImage.getImageData();
-		queryImageData.append(image.getImageData());
-		queryImageData.get_normalize(0,255).save("sift.png");
-		cout<<distance<<endl;
+		//cout<<"Count = "<<count<<endl;
+		Image::DrawImage(queryImage,image,mapping);
+		return count;
 	}
 	
 };
