@@ -39,22 +39,7 @@ int main(int argc, char **argv)
 				images.push_back(I);
 			}
 			
-			multimap<int,string> ranking;
-			for(int i = 0;i<images.size();++i)
-			{
-				int count = Image::MatchSIFT(queryImage,images[i]);
-				ranking.insert(make_pair(count,images[i].getName()));
-			}
-			
-			multimap<int,string>::reverse_iterator rankingStart = ranking.rbegin();
-			multimap<int,string>::reverse_iterator rankingEnd = ranking.rend();
-			
-			int top10 = 0;
-			while(rankingStart != rankingEnd && ++top10 <= 10)
-			{
-				cout<<"Image = "<<rankingStart->second<<" Count = "<<rankingStart->first<<endl;
-				rankingStart++;
-			}			
+			Image::descriptorMatching1(queryImage,images);			
 		}
 		else if(part == "part2")
 		{

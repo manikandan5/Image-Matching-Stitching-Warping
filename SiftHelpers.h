@@ -136,6 +136,26 @@ class Image
 		return count;
 	}
 	
+	static void descriptorMatching1(Image& queryImage,vector<Image>& images)
+	{
+		multimap<int,string> ranking;
+		for(int i = 0;i<images.size();++i)
+		{
+			int count = Image::MatchSIFT(queryImage,images[i]);
+			ranking.insert(make_pair(count,images[i].getName()));
+		}
+			
+		multimap<int,string>::reverse_iterator rankingStart = ranking.rbegin();
+		multimap<int,string>::reverse_iterator rankingEnd = ranking.rend();
+			
+		int top10 = 0;
+		while(rankingStart != rankingEnd && ++top10 <= 10)
+		{
+			cout<<"Image = "<<rankingStart->second<<" Count = "<<rankingStart->first<<endl;
+			rankingStart++;
+		}
+	}
+	
 };
 
 
