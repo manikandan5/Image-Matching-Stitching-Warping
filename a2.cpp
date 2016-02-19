@@ -7,6 +7,7 @@
 
 //Link to the header file
 #include "SiftHelpers.h"
+#include "Homography.h"
 
 int main(int argc, char **argv)
 {
@@ -57,7 +58,8 @@ int main(int argc, char **argv)
 		}
 		else if(part == "part2")
 		{
-			// do something here!
+			Image I("lincoln.png");
+			projectiveTransform(I);
 		}
 		else
 		throw std::string("unknown part!");

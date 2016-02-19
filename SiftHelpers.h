@@ -14,13 +14,13 @@
 using namespace cimg_library;
 using namespace std;
 
-	struct SiftDescriptorCompare
+struct SiftDescriptorCompare
+{
+	bool operator() (const SiftDescriptor& lhs, const SiftDescriptor& rhs) const
 	{
-		bool operator() (const SiftDescriptor& lhs, const SiftDescriptor& rhs) const
-		{
-			return lhs.row < rhs.row;
-		}
-	};
+		return lhs.row < rhs.row;
+	}
+};
 
 typedef map<SiftDescriptor,SiftDescriptor,SiftDescriptorCompare> SiftDescriptorMap;
 
