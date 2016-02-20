@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 			}
 			
 			//Remove the comment later
-			//Image::descriptorMatching1(queryImage,images);
+			Image::descriptorMatching1(queryImage,images);
 
 			Image::descriptorMatching2(queryImage,images);	
 		}

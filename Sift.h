@@ -17,8 +17,11 @@ class SiftDescriptor
 
   SiftDescriptor(float _row, float _col, float _sigma, float _angle, float *_descriptor) : 
     row(_row), col(_col), sigma(_sigma), angle(_angle), descriptor(_descriptor, _descriptor+128) {}
-
-    float row, col, sigma, angle;
+	
+  SiftDescriptor(float _row, float _col, float _sigma, float _angle, vector<float> _descriptor) : 
+    row(_row), col(_col), sigma(_sigma), angle(_angle), descriptor(_descriptor) {}	
+    
+	float row, col, sigma, angle;
     vector<float> descriptor;
 };
 

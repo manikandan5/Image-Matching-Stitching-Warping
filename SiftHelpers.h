@@ -15,18 +15,6 @@
 using namespace cimg_library;
 using namespace std;
 
-class NewSiftDescriptor
-{
- public:
-  NewSiftDescriptor() {}
-
-  NewSiftDescriptor(float _row, float _col, float _sigma, float _angle, vector<double> _descriptor) : 
-    row(_row), col(_col), sigma(_sigma), angle(_angle), descriptor(_descriptor) {}
-
-    float row, col, sigma, angle;
-    vector<double> descriptor;
-};
-
 struct SiftDescriptorCompare
 {
 	bool operator() (const SiftDescriptor& lhs, const SiftDescriptor& rhs) const
@@ -35,25 +23,14 @@ struct SiftDescriptorCompare
 	}
 };
 
-struct NewSiftDescriptorCompare
-{
-	bool operator() (const NewSiftDescriptor& lhs, const NewSiftDescriptor& rhs) const
-	{
-		return lhs.row < rhs.row;
-	}
-};
-
-
-
 typedef map<SiftDescriptor,SiftDescriptor,SiftDescriptorCompare> SiftDescriptorMap;
-typedef map<NewSiftDescriptor,NewSiftDescriptor,NewSiftDescriptorCompare> NewSiftDescriptorMap;
 
 class Image
 {	
 	string name;
 	vector<SiftDescriptor> descriptors;
 	CImg<double> input_image;
-	vector<NewSiftDescriptor> newDescriptors;
+	vector<SiftDescriptor> newDescriptors;
 	
 	public:
 	
@@ -71,7 +48,7 @@ class Image
 		return name;
 	}
 	
-	const vector<SiftDescriptor>& getDescriptors() const
+	vector<SiftDescriptor> getDescriptors() const
 	{
 		return descriptors;
 	}
@@ -81,19 +58,19 @@ class Image
 		return input_image;
 	}
 	
-	void setNewDescriptors(vector<NewSiftDescriptor> NewDescriptors)
+	void setNewDescriptors(vector<SiftDescriptor> NewDescriptors)
 	{
 		newDescriptors = NewDescriptors;
 	}
 	
-	vector<NewSiftDescriptor> getNewDescriptors()
+	vector<SiftDescriptor> getNewDescriptors() const
 	{
 		return newDescriptors;
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
-	static void DrawImage(const Image& queryImage,const Image& image,SiftDescriptorMap& mapping)
+	static void DrawImage(const Image& queryImage,const Image& image,SiftDescriptorMap& mapping,bool reduced = false)
 	{
 		CImg<double> queryImageData = queryImage.getImageData();
 		int queryHeight = queryImageData.height();
@@ -115,15 +92,23 @@ class Image
 			queryImageData.draw_line(x0,y0,x1,y1,yellow);
 			++mStart;	
 		}
-		
-		queryImageData.get_normalize(0,255).save("sift.png");
+		if(!reduced)
+			queryImageData.get_normalize(0,255).save("sift.png");
+		else
+			queryImageData.get_normalize(0,255).save("newsift.png");
 	}
 	
-	static int MatchSIFT(const Image& queryImage,const Image& image)
+	static int MatchSIFT(const Image& queryImage,const Image& image,bool reduced = false)
 	{
-		const vector<SiftDescriptor> queryDescriptors = queryImage.getDescriptors();
-		const vector<SiftDescriptor> imageDescriptors = image.getDescriptors();
+		vector<SiftDescriptor> queryDescriptors = queryImage.getDescriptors();
+		vector<SiftDescriptor> imageDescriptors = image.getDescriptors();
 		
+		if(reduced)
+		{
+			queryDescriptors = queryImage.getNewDescriptors();
+			imageDescriptors = image.getNewDescriptors();
+		}
+			
 		//double distance = 0.0;
 		
 		SiftDescriptorMap mapping;
@@ -169,7 +154,7 @@ class Image
 		}
 		
 		//cout<<"Count = "<<count<<endl;
-		Image::DrawImage(queryImage,image,mapping);
+		Image::DrawImage(queryImage,image,mapping,reduced);
 		return count;
 	}
 	
@@ -197,41 +182,16 @@ class Image
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
-	static void DrawNewImage(const Image& queryImage,const Image& image,NewSiftDescriptorMap& mapping)
-	{
-		CImg<double> queryImageData = queryImage.getImageData();
-		int queryHeight = queryImageData.height();
-		int queryWidth = queryImageData.width();
-		queryImageData.append(image.getImageData());
-		
-		NewSiftDescriptorMap::iterator mStart = mapping.begin();
-		NewSiftDescriptorMap::iterator mEnd = mapping.end();
-		
-		
-		const double yellow[] = {255.0,255.0,0.0};
-		while(mStart != mEnd)
-		{
-			const int y0 = mStart->first.row;
-			const int x0 = mStart->first.col;
-			const int y1 = mStart->second.row;
-			const int x1 = queryWidth + mStart->second.col;
-			
-			queryImageData.draw_line(x0,y0,x1,y1,yellow);
-			++mStart;	
-		}
-		
-		queryImageData.get_normalize(0,255).save("newsift.png");
-	}
 	
-	static vector<vector<double>> getUniformDistribution(int k = 20)
+	static vector<vector<float>> getUniformDistribution(int k = 20)
 	{
 		default_random_engine gen;
-		uniform_real_distribution<double> x(0.0,1.0);
+		uniform_real_distribution<float> x(0.0,1.0);
 		
-		vector<vector<double>> distributionLists;
+		vector<vector<float>> distributionLists;
 		for(int i = 0;i<k;++i)
 		{
-			vector<double> distribution;
+			vector<float> distribution;
 			for(int j = 0;j<128;++j)
 			{
 				distribution.push_back(x(gen));
@@ -243,72 +203,19 @@ class Image
 		return distributionLists;
 	}
 	
-	static int MatchReducedSIFT(Image& queryImage,Image& image)
-	{
-		vector<NewSiftDescriptor> queryDescriptors = queryImage.getNewDescriptors();
-		vector<NewSiftDescriptor> imageDescriptors = image.getNewDescriptors();
-		
-		//double distance = 0.0;
-		
-		NewSiftDescriptorMap mapping;
-		int count = 0;
-			
-		for(int i = 0;i<queryDescriptors.size();++i)
-		{
-			double min = DBL_MAX;
-			double second_min = DBL_MAX;
-			int descriptor = -1;
-			for(int j =0;j<imageDescriptors.size();++j)
-			{
-				double sum = 0;
-				for(int k = 0;k<128;++k)
-				{
-					sum+= abs(queryDescriptors[i].descriptor[k] - imageDescriptors[j].descriptor[k]);
-				}
-				
-				sum = sqrt(sum);
-				if(sum < min)
-				{
-					second_min = min;
-					min = sum;
-					descriptor = j;
-				}
-				else if(sum < second_min)
-				{
-					second_min = sum;
-				}
-			}
-			
-			if(min/second_min < 0.8)
-			{
-				count++;
-			
-				 NewSiftDescriptor q = queryDescriptors[i];
-				 NewSiftDescriptor im = imageDescriptors[descriptor];
-				 mapping[q] = im;
-				
-				//distance+=min/second_min;
-			}
-			
-		}
-		
-		//cout<<"Count = "<<count<<endl;
-		Image::DrawNewImage(queryImage,image,mapping);
-		return count;
-	}
 	
-	static void reduceSift(Image& image,vector<vector<double>>& distributionLists)
+	static void reduceSift(Image& image,vector<vector<float>>& distributionLists)
 	{
 		const vector<SiftDescriptor> imageDescriptors = image.getDescriptors();
-		double w = 20;
+		float w = 20;
 		
-		vector<NewSiftDescriptor> newDescriptors;
+		vector<SiftDescriptor> newDescriptors;
 		for(int i = 0;i<imageDescriptors.size();++i)
 		{
-			vector<double> descriptorValues;
+			vector<float> descriptorValues;
 			for(int j = 0;j<distributionLists.size();++j)
 			{
-				double sum = 0.0;
+				float sum = 0.0;
 				for(int k = 0;k<128;++k)
 				{
 					sum += imageDescriptors[i].descriptor[k] * distributionLists[j][k];
@@ -317,7 +224,7 @@ class Image
 				
 				descriptorValues.push_back(sum);
 			}
-			NewSiftDescriptor newDescriptor(imageDescriptors[i].row,imageDescriptors[i].col,imageDescriptors[i].sigma,imageDescriptors[i].angle,descriptorValues);	
+			SiftDescriptor newDescriptor(imageDescriptors[i].row,imageDescriptors[i].col,imageDescriptors[i].sigma,imageDescriptors[i].angle,descriptorValues);	
 			newDescriptors.push_back(newDescriptor);
 		}
 		image.setNewDescriptors(newDescriptors);	
@@ -325,7 +232,7 @@ class Image
 	
 	static void descriptorMatching2(Image& queryImage,vector<Image>& images)
 	{
-		vector<vector<double>> distributionLists = getUniformDistribution();
+		vector<vector<float>> distributionLists = getUniformDistribution();
 		
 		reduceSift(queryImage,distributionLists);
 		
@@ -337,7 +244,7 @@ class Image
 		for(int i = 0;i<images.size();++i)
 		{
 			reduceSift(images[i],distributionLists);
-			int count = MatchReducedSIFT(queryImage,images[i]);
+			int count = MatchSIFT(queryImage,images[i],true);
 			ranking.insert(make_pair(count,images[i].getName()));
 		}
 			
