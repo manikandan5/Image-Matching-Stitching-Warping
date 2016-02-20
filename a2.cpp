@@ -39,7 +39,10 @@ int main(int argc, char **argv)
 				images.push_back(I);
 			}
 			
-			Image::descriptorMatching1(queryImage,images);			
+			//Remove the comment later
+			//Image::descriptorMatching1(queryImage,images);
+
+			Image::descriptorMatching2(queryImage,images);	
 		}
 		else if(part == "part2")
 		{
