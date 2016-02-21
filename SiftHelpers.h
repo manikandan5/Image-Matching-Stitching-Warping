@@ -183,10 +183,10 @@ class Image
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	
-	static vector<vector<float>> getUniformDistribution(int k = 20)
+	static vector<vector<float>> getUniformDistribution(int k = 50)
 	{
 		default_random_engine gen;
-		uniform_real_distribution<float> x(0.0,1.0);
+		normal_distribution<float> x(0.0,1.0);
 		
 		vector<vector<float>> distributionLists;
 		for(int i = 0;i<k;++i)
@@ -210,7 +210,8 @@ class Image
 		float w = 20;
 		
 		vector<SiftDescriptor> newDescriptors;
-		for(int i = 0;i<imageDescriptors.size();++i)
+		
+		for(int i = 0;i<imageDescriptors.size() ;++i)
 		{
 			vector<float> descriptorValues;
 			for(int j = 0;j<distributionLists.size();++j)
