@@ -27,8 +27,11 @@ int main(int argc, char **argv)
 		{
 			if(argc < 4)
 			{
-				cout << "Insufficent number of arguments; correct usage:" << endl;
-				cout << "    ./a2 part1  query1.png img_1.png....." << endl;
+				//cout << "Insufficent number of arguments; correct usage:" << endl;
+				//cout << "    ./a2 part1  query1.png img_1.png....." << endl;
+				
+				//2
+				Image::randomRanking();
 				return -1;
 			}			
 			Image queryImage(argv[2]);
@@ -40,9 +43,11 @@ int main(int argc, char **argv)
 			}
 			
 			//Remove the comment later
+			//1
 			Image::descriptorMatching1(queryImage,images);
-
-			Image::descriptorMatching2(queryImage,images);	
+			
+			//3
+			//Image::descriptorMatching2(queryImage,images);	
 		}
 		else if(part == "part2")
 		{

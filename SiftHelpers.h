@@ -11,6 +11,8 @@
 #include <float.h>
 #include <map>
 #include <random>
+#include <dirent.h>
+#include <unistd.h>
 
 using namespace cimg_library;
 using namespace std;
@@ -124,7 +126,7 @@ class Image
 				double sum = 0;
 				for(int k = 0;k<128;++k)
 				{
-					sum+= abs(queryDescriptors[i].descriptor[k] - imageDescriptors[j].descriptor[k]);
+					sum+= pow(abs(queryDescriptors[i].descriptor[k] - imageDescriptors[j].descriptor[k]),2);
 				}
 				
 				sum = sqrt(sum);
@@ -140,7 +142,7 @@ class Image
 				}
 			}
 			
-			if(min/second_min < 0.8)
+			if(min/second_min < 0.7)
 			{
 				count++;
 			
@@ -260,9 +262,63 @@ class Image
 			rankingStart++;
 		}
 	}
-
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
+	static void randomRanking()
+	{
+		char buf1[1024];
+		
+		getcwd(buf1, sizeof(buf1));
+		
+		string directory = string(buf1) + "/part1_images/";
+		DIR *dir;
+		struct dirent *ent;
+		vector<string> imageNames;
+		int count = 0;
+		if((dir = opendir(directory.c_str())) != nullptr)
+		{
+			while ((ent = readdir (dir)) != NULL) 
+			{
+				string fileName = ent->d_name;
+				if(	fileName.find(".jpg") != string::npos)
+				{
+					string name = "part1_images/" + string(ent->d_name);
+					imageNames.push_back(name);
+				}
+			}
+			
+			closedir(dir);
+		}
+		else
+		{
+			cout<<" Error in current directory"<<endl;
+			return;
+		}
+		
+		vector<Image> images;
+		for(int i = 0;i < imageNames.size();++i)
+		{
+			Image I(imageNames[i]);
+			images.push_back(I);
+		}
+		
+		srand(time(NULL));
+		int randomNumber = rand() % imageNames.size();
+		Image queryImage = images[randomNumber];
+		cout<<queryImage.getName()<<endl;
+		
+		vector<Image>::iterator  selectedOne = images.begin()+randomNumber;
+		//cout<<selectedOne->getName()<<endl;		
+		images.erase(selectedOne);
+		
+		descriptorMatching1(queryImage,images);
+		
+	}
 };
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 #endif
