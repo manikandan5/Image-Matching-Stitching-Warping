@@ -4,19 +4,18 @@
 #include "SiftHelpers.h"
 
 
-void projectiveTransform(Image& I)
+void projectiveTransform(Image& I,CImg<double>& projection)
 {
 	CImg<double> imageData = I.getImageData();
 	
 	CImg<double> transformedImage(imageData.width(),imageData.height(),imageData.depth(),3,255);
 	
-	double a = 0.907 ,b = 0.258, c= -182, d = -0.153, e = 1.44, f = 58, g= -0.000306, h = 0.000731, i0 = 1;
-	
+	projection.invert();
 	// Doing inverse warping
 	
 	//calcualted inverse from calculator
-	double ai = 1.1246685805361205 ,bi = -0.3146766039759572, ci = 222.9409246881795, di = 0.10883905064150695, ei = 0.6850586647407801, 
-	        fi = -19.92469533821099, gi = 0.0002645872396251113, hi = -0.0005970689247421533, ii = 1.0827848752468152;
+	double ai = projection(0,0) ,bi = projection(1,0), ci = projection(2,0), di = projection(0,1), ei = projection(1,1), 
+	        fi = projection(2,1), gi = projection(0,2), hi = projection(1,2), ii = projection(2,2);
 	
 	for(int i = 0;i<transformedImage.width();++i)
 	{
@@ -107,6 +106,27 @@ CImg<double> linearSystemSolver(SiftDescriptorMap& mapping)
 	return X;
 }
 
+int getInliners(CImg<double>& projection,SiftDescriptorMap& mapping)
+{
+	int count = 0;
+	
+	//Second = [H]*First
+	
+	//cout<<" New Model"<<endl;
+	for(int i = 0;i<mapping.size();++i)
+	{
+		double zz = projection(0,6) * mapping[i].first.col+ projection(0,7) * mapping[i].first.row + 1;
+		double xx = (projection(0,0) * mapping[i].first.col+ projection(0,1) * mapping[i].first.row + projection(0,2))/zz;
+		double yy = (projection(0,3) * mapping[i].first.col+ projection(0,4) * mapping[i].first.row + projection(0,5))/zz;
+		
+		//cout<<i+1<<" x-x'= "<<xx-mapping[i].second.col<<" y-y' = "<<yy-mapping[i].second.row<<endl; 
+		
+		if(abs(xx-mapping[i].second.col) <3.0 && abs(yy-mapping[i].second.row)<3.0)
+			count++;
+	}
+	return count;
+}
+
 void getProjection(Image I1,Image I2)
 {	
 	SiftDescriptorMap mapping;
@@ -116,11 +136,37 @@ void getProjection(Image I1,Image I2)
 	// We need 4 points to get Projection
 	
 	//Figure out to find N
-	int N = 10;
+	int N = 1000;
+	
+	int inliners = -1;
+	CImg<double> bestProjection;
 	for(int i = 0;i<N;++i)
 	{
 		CImg<double> projection = linearSystemSolver(mapping);
+		int numberOfInliners = getInliners(projection,mapping);
+		if(numberOfInliners > inliners)
+		{
+			inliners = numberOfInliners;
+			bestProjection = projection;
+		}
 	}
+		
+	/*cout<<"Inliners = "<<inliners<<" , size = "<<mapping.size()<<endl;*/
+	
+	CImg<double> actualProjection(3,3);
+	
+	actualProjection(0,0) = bestProjection(0,0);
+	actualProjection(1,0) = bestProjection(0,1);
+	actualProjection(2,0) = bestProjection(0,2);
+	actualProjection(0,1) = bestProjection(0,3);
+	actualProjection(1,1) = bestProjection(0,4);
+	actualProjection(2,1) = bestProjection(0,5);
+	actualProjection(0,2) = bestProjection(0,6);
+	actualProjection(1,2) = bestProjection(0,7);
+	actualProjection(2,2) = 1;
+	
+	
+	projectiveTransform(I1,actualProjection);
 }
 
 
