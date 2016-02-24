@@ -3,10 +3,6 @@
 
 #include "SiftHelpers.h"
 
-double getAverage(CImg<double>& imageData,int w0,int h0)
-{
-	return (imageData(w0,h0,0,0) + imageData(w0,h0,0,1) + imageData(w0,h0,0,2))/3;
-}
 
 void projectiveTransform(Image& I)
 {
@@ -60,6 +56,71 @@ void projectiveTransform(Image& I)
 	}
 	
 	transformedImage.get_normalize(0,255).save("transform.png");	
+	
+}
+
+CImg<double> linearSystemSolver(SiftDescriptorMap& mapping)
+{
+	CImg<double> A(8,8);
+	CImg<double> B(1,8);
+	
+	int i = 0;
+	random_shuffle(mapping.begin(),mapping.end());
+	
+	SiftDescriptorMap::iterator start = mapping.begin();
+	SiftDescriptorMap::iterator end = mapping.end();
+	while(start != end)
+	{
+		A(0,2*i) = start->first.col;
+		A(1,2*i) = start->first.row;
+		A(2,2*i) = 1;
+		A(3,2*i) = A(4,2*i) = A(5,2*i) = 0;
+		A(6,2*i) = -1.0 * start->first.col * start->second.col;
+		A(7,2*i) = -1.0 * start->first.row * start->second.col;
+		
+		A(3,2*i+1) = start->first.col;
+		A(4,2*i+1) = start->first.row;
+		A(5,2*i+1) = 1;
+		A(0,2*i+1) = A(1,2*i+1) = A(2,2*i+1) = 0;
+		A(6,2*i+1) = -1.0 * start->first.col * start->second.row;
+		A(7,2*i+1) = -1.0 * start->first.row * start->second.row;
+		
+		B(0,2*i) = start->second.col;
+		B(0,2*i+1) = start->second.row;
+		
+		if(++i == 4)
+			break;
+		++start;
+	}
+	
+	CImg<double> X = B.solve(A);
+	
+	/*CImg<double>::iterator ansStart = X.begin();
+	CImg<double>::iterator ansEnd = X.end();
+	while(ansStart != ansEnd)
+	{
+		cout<<*ansStart<<" ";
+		++ansStart;
+	}
+	cout<<endl;*/
+	
+	return X;
+}
+
+void getProjection(Image I1,Image I2)
+{	
+	SiftDescriptorMap mapping;
+	int count = Image::MatchSIFT(I1,I2,mapping);
+	
+	assert(count >= 4);
+	// We need 4 points to get Projection
+	
+	//Figure out to find N
+	int N = 10;
+	for(int i = 0;i<N;++i)
+	{
+		CImg<double> projection = linearSystemSolver(mapping);
+	}
 }
 
 

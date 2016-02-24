@@ -13,6 +13,7 @@
 #include <random>
 #include <dirent.h>
 #include <unistd.h>
+#include <utility>
 
 using namespace cimg_library;
 using namespace std;
@@ -25,7 +26,8 @@ struct SiftDescriptorCompare
 	}
 };
 
-typedef map<SiftDescriptor,SiftDescriptor,SiftDescriptorCompare> SiftDescriptorMap;
+//typedef map<SiftDescriptor,SiftDescriptor,SiftDescriptorCompare> SiftDescriptorMap;
+typedef vector<pair<SiftDescriptor,SiftDescriptor>> SiftDescriptorMap;
 
 class Image
 {	
@@ -100,7 +102,7 @@ class Image
 			queryImageData.get_normalize(0,255).save("newsift.png");
 	}
 	
-	static int MatchSIFT(const Image& queryImage,const Image& image,bool reduced = false)
+	static int MatchSIFT(const Image& queryImage,const Image& image,SiftDescriptorMap& mapping,bool reduced = false)
 	{
 		vector<SiftDescriptor> queryDescriptors = queryImage.getDescriptors();
 		vector<SiftDescriptor> imageDescriptors = image.getDescriptors();
@@ -113,7 +115,6 @@ class Image
 			
 		//double distance = 0.0;
 		
-		SiftDescriptorMap mapping;
 		int count = 0;
 			
 		for(int i = 0;i<queryDescriptors.size();++i)
@@ -148,7 +149,7 @@ class Image
 			
 				SiftDescriptor q = queryDescriptors[i];
 				SiftDescriptor im = imageDescriptors[descriptor];
-				mapping[q] = im;
+				mapping.push_back(make_pair(q,im));
 				
 				//distance+=min/second_min;
 			}
@@ -165,7 +166,8 @@ class Image
 		multimap<int,string> ranking;
 		for(int i = 0;i<images.size();++i)
 		{
-			int count = Image::MatchSIFT(queryImage,images[i]);
+			SiftDescriptorMap mapping;
+			int count = Image::MatchSIFT(queryImage,images[i],mapping);
 			ranking.insert(make_pair(count,images[i].getName()));
 		}
 			
@@ -247,7 +249,8 @@ class Image
 		for(int i = 0;i<images.size();++i)
 		{
 			reduceSift(images[i],distributionLists);
-			int count = MatchSIFT(queryImage,images[i],true);
+			SiftDescriptorMap mapping;
+			int count = MatchSIFT(queryImage,images[i],mapping,true);
 			ranking.insert(make_pair(count,images[i].getName()));
 		}
 			
@@ -298,13 +301,17 @@ class Image
 		vector<Image> images;
 		for(int i = 0;i < imageNames.size();++i)
 		{
-			Image I(imageNames[i]);
-			images.push_back(I);
+			//if(imageNames[i].compare("part1_images/trafalgarsquare_5.jpg") != 0)
+			{
+				Image I(imageNames[i]);
+				images.push_back(I);
+			}
 		}
 		
 		srand(time(NULL));
 		int randomNumber = rand() % imageNames.size();
 		Image queryImage = images[randomNumber];
+		//Image queryImage = Image("part1_images/trafalgarsquare_5.jpg");
 		cout<<queryImage.getName()<<endl;
 		
 		vector<Image>::iterator  selectedOne = images.begin()+randomNumber;

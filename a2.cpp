@@ -47,12 +47,15 @@ int main(int argc, char **argv)
 			Image::descriptorMatching1(queryImage,images);
 			
 			//3
-			//Image::descriptorMatching2(queryImage,images);	
+			Image::descriptorMatching2(queryImage,images);	
 		}
 		else if(part == "part2")
 		{
 			Image I("lincoln.png");
+			Image I1("transform.png");
 			projectiveTransform(I);
+			
+			getProjection(I,I1);
 		}
 		else
 		throw std::string("unknown part!");
