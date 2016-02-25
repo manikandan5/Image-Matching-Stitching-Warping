@@ -94,7 +94,8 @@ class Image
 			const int x1 = queryWidth + mStart->second.col;
 			
 			queryImageData.draw_line(x0,y0,x1,y1,yellow);
-			++mStart;	
+			++mStart;
+	
 		}
 		if(!reduced)
 			queryImageData.get_normalize(0,255).save("sift.png");

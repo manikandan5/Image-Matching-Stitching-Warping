@@ -4,7 +4,7 @@
 #include "SiftHelpers.h"
 
 
-void projectiveTransform(Image& I,CImg<double>& projection)
+void projectiveTransform(const Image& I,CImg<double>& projection,const string& name)
 {
 	CImg<double> imageData = I.getImageData();
 	
@@ -54,7 +54,7 @@ void projectiveTransform(Image& I,CImg<double>& projection)
 		}
 	}
 	
-	transformedImage.get_normalize(0,255).save("transform.png");	
+	transformedImage.get_normalize(0,255).save(name.c_str());	
 	
 }
 
@@ -64,6 +64,8 @@ CImg<double> linearSystemSolver(SiftDescriptorMap& mapping)
 	CImg<double> B(1,8);
 	
 	int i = 0;
+	
+	srand(time(NULL));
 	random_shuffle(mapping.begin(),mapping.end());
 	
 	SiftDescriptorMap::iterator start = mapping.begin();
@@ -115,19 +117,19 @@ int getInliners(CImg<double>& projection,SiftDescriptorMap& mapping)
 	//cout<<" New Model"<<endl;
 	for(int i = 0;i<mapping.size();++i)
 	{
-		double zz = projection(0,6) * mapping[i].first.col+ projection(0,7) * mapping[i].first.row + 1;
-		double xx = (projection(0,0) * mapping[i].first.col+ projection(0,1) * mapping[i].first.row + projection(0,2))/zz;
-		double yy = (projection(0,3) * mapping[i].first.col+ projection(0,4) * mapping[i].first.row + projection(0,5))/zz;
+		double zz = projection(0,6) * mapping[i].first.col + projection(0,7) * mapping[i].first.row + 1;
+		double xx = (projection(0,0) * mapping[i].first.col + projection(0,1) * mapping[i].first.row + projection(0,2))/zz;
+		double yy = (projection(0,3) * mapping[i].first.col + projection(0,4) * mapping[i].first.row + projection(0,5))/zz;
 		
-		//cout<<i+1<<" x-x'= "<<xx-mapping[i].second.col<<" y-y' = "<<yy-mapping[i].second.row<<endl; 
-		
-		if(abs(xx-mapping[i].second.col) <3.0 && abs(yy-mapping[i].second.row)<3.0)
+		//cout<<i+1<<" x-x'= "<<xx-mapping[i].second.col<<" y-y' = "<<yy-mapping[i].second.row<<endl; 		
+
+		if(abs(xx-mapping[i].second.col) <10.0 && abs(yy-mapping[i].second.row)<10.0)
 			count++;
 	}
 	return count;
 }
 
-void getProjection(Image I1,Image I2)
+void getProjection(Image& I1,Image& I2,string& name)
 {	
 	SiftDescriptorMap mapping;
 	int count = Image::MatchSIFT(I1,I2,mapping);
@@ -136,8 +138,8 @@ void getProjection(Image I1,Image I2)
 	// We need 4 points to get Projection
 	
 	//Figure out to find N
-	int N = 1000;
-	
+	int N = 10000;
+		
 	int inliners = -1;
 	CImg<double> bestProjection;
 	for(int i = 0;i<N;++i)
@@ -148,10 +150,11 @@ void getProjection(Image I1,Image I2)
 		{
 			inliners = numberOfInliners;
 			bestProjection = projection;
+			//cout<<inliners<<endl;
 		}
 	}
 		
-	/*cout<<"Inliners = "<<inliners<<" , size = "<<mapping.size()<<endl;*/
+	//cout<<"Inliners = "<<inliners<<" , size = "<<mapping.size()<<endl;
 	
 	CImg<double> actualProjection(3,3);
 	
@@ -166,7 +169,16 @@ void getProjection(Image I1,Image I2)
 	actualProjection(2,2) = 1;
 	
 	
-	projectiveTransform(I1,actualProjection);
+	projectiveTransform(I1,actualProjection,name);
+}
+
+void warpingApplication(Image& queryImage,vector<Image>& images)
+{
+	for(int i = 0;i<images.size();++i)
+	{
+		string name = "img_"+to_string(i+1)+ "-warped.png";
+		getProjection(queryImage,images[i],name);
+	}
 }
 
 
