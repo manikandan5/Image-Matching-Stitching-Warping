@@ -11,19 +11,22 @@
 		
 		Output in "sift.png"
 		
-		This will also create "newsift.png" for quantized projection function of the Sift Descriptor. 
+		./a2 part1fast query.png img_1.png 
+		This will create "newsift.png" for quantized projection function of the Sift Descriptor. 
 		
  2) Normal Sift Match between Query Image and and its warped Image
-              ./a2 part1 query.png img_1.png img_2.png ... img_n.png
+        ./a2 part1 query.png img_1.png img_2.png ... img_n.png
 			
 		This will rank 	img_1.png img_2.png ... img_n.png to 10 rankings with respect to query.png
-		The output is followed by "Matching Type 1"
+		The output is followed by "Normal Sift Matching top 10 results"
 		
-		This will also rank for quantized projection function of the Sift Descriptor.	
-		The output is followed by "Matching Type 2"
+		./a2 part1fast query.png img_1.png 
+		This will rank for quantized projection function of the Sift Descriptor.	
+		The output is followed by "quantized projection function Sift matching results top 10"
  
  3) to do the ranking picking each one from each group and ranking them in order. Just do
 		./a2 part1 
+		./a2 part1fast
 		
 */			  
 
@@ -73,8 +76,27 @@ int main(int argc, char **argv)
 			//1 - ranking of all the images with respect to query images
 			Image::descriptorMatching1(queryImage,images);
 						
+				
+		}
+		else if(part == "part1fast")
+		{
+			if(argc < 4)
+			{
+				//Ranking of each image from a group chosen randomly.
+				Image::randomRanking();
+				return -1;
+			}
+			
+			Image queryImage(argv[2]);
+			vector<Image> images;
+			for(int i = 3;i < argc;++i)
+			{
+				Image I(argv[i]);
+				images.push_back(I);
+			}
+			
 			//3 - ranking of all the images with respect to query images - quantized projection function
-			Image::descriptorMatching2(queryImage,images);	
+			Image::descriptorMatching2(queryImage,images);
 		}
 		else if(part == "part2")
 		{
