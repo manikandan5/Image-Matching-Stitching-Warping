@@ -94,6 +94,15 @@ class Image
 			const int y1 = mStart->second.row;
 			const int x1 = queryWidth + mStart->second.col;
 			
+			for(int j=0; j<5; j++)
+				for(int k=0; k<5; k++)
+					if(j==2 || k==2)
+						if(x0+k < queryImageData.width() && x1+k < queryImageData.width() && y0+j < queryImageData.height() && y1+j < queryImageData.height())
+						{	
+							queryImageData(x0+k, y0+j, 0, 0)=queryImageData(x1+k, y1+j, 0, 1)=255;
+							queryImageData(x0+k, y0+j, 0, 1)= queryImageData(x0+k, y0+j, 0, 2) =queryImageData(x1+k, y1+j, 0, 0)=queryImageData(x1+k, y1+j, 0, 2)= 0;
+						}
+						
 			queryImageData.draw_line(x0,y0,x1,y1,yellow);
 			++mStart;
 	
