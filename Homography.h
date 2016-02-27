@@ -1,9 +1,14 @@
 #ifndef __HOMOGRAPHY_H__
 #define __HOMOGRAPHY_H__
 
+/*
+	Part-2 helpers
+*/
 #include "SiftHelpers.h"
 
-
+/*
+	Given Image and projection the image is projected and saved.
+*/
 void projectiveTransform(const Image& I,CImg<double>& projection,const string& name)
 {
 	CImg<double> imageData = I.getImageData();
@@ -11,12 +16,12 @@ void projectiveTransform(const Image& I,CImg<double>& projection,const string& n
 	CImg<double> transformedImage(imageData.width(),imageData.height(),imageData.depth(),3,255);
 	
 	projection.invert();
-	// Doing inverse warping
 	
-	//calcualted inverse from calculator
+	
 	double ai = projection(0,0) ,bi = projection(1,0), ci = projection(2,0), di = projection(0,1), ei = projection(1,1), 
 	        fi = projection(2,1), gi = projection(0,2), hi = projection(1,2), ii = projection(2,2);
 	
+	// Inverse warping
 	for(int i = 0;i<transformedImage.width();++i)
 	{
 		for(int j = 0;j<transformedImage.height();++j)
@@ -25,7 +30,7 @@ void projectiveTransform(const Image& I,CImg<double>& projection,const string& n
 			double h = (di*i + ei*j + fi)/(gi*i + hi*j + ii);
 			
 			//Bilinear Interpolation
-			
+			// Credit to wikipedia  = https://en.wikipedia.org/wiki/Bilinear_interpolation	
 			int w0 = (int)floor(w);
 			int h0 = (int)floor(h);
 			int w1 = (int)ceil(w);
@@ -42,22 +47,22 @@ void projectiveTransform(const Image& I,CImg<double>& projection,const string& n
 				double v3 = imageData(w0,h1,0,k);
 				double v4 = imageData(w1,h1,0,k);
 				
-				
 				double Tw = (((w1 - w)/(w1-w0)) * v1) + (((w-w0)/(w1-w0)) * v2);
 				double Th = (((w1 - w)/(w1-w0)) * v3) + (((w-w0)/(w1-w0)) * v4);
 
 				double value = (((h1-h)/(h1-h0)) * Tw) + (((h-h0)/(h1-h0)) * Th);
 				
-				transformedImage(i,j,k)	= value;
-				
+				transformedImage(i,j,k)	= value;		
 			}
 		}
 	}
 	
 	transformedImage.get_normalize(0,255).save(name.c_str());	
-	
 }
 
+/*
+	Given corresponding 4 points matching in each image estimating the projection matrix
+*/
 CImg<double> linearSystemSolver(SiftDescriptorMap& mapping)
 {
 	CImg<double> A(8,8);
@@ -66,10 +71,12 @@ CImg<double> linearSystemSolver(SiftDescriptorMap& mapping)
 	int i = 0;
 	
 	srand(time(NULL));
+	// To pick different 4 points everytime
 	random_shuffle(mapping.begin(),mapping.end());
 	
 	SiftDescriptorMap::iterator start = mapping.begin();
 	SiftDescriptorMap::iterator end = mapping.end();
+	//Fill A and B matrix from the class slide
 	while(start != end)
 	{
 		A(0,2*i) = start->first.col;
@@ -89,11 +96,12 @@ CImg<double> linearSystemSolver(SiftDescriptorMap& mapping)
 		B(0,2*i) = start->second.col;
 		B(0,2*i+1) = start->second.row;
 		
-		if(++i == 4)
+		if(++i == 4)//Stop for 4 ponts.
 			break;
 		++start;
 	}
 	
+	//AX = B, estimate X
 	CImg<double> X = B.solve(A);
 	
 	/*CImg<double>::iterator ansStart = X.begin();
@@ -108,13 +116,14 @@ CImg<double> linearSystemSolver(SiftDescriptorMap& mapping)
 	return X;
 }
 
-int getInliners(CImg<double>& projection,SiftDescriptorMap& mapping)
+/*
+	To get number of inliners in the given projection from the matching descriptors 
+*/
+int getInliners(CImg<double>& projection,const SiftDescriptorMap& mapping)
 {
 	int count = 0;
 	
-	//Second = [H]*First
-	
-	//cout<<" New Model"<<endl;
+	//point in Second Image = [projection]* point in first 	
 	for(int i = 0;i<mapping.size();++i)
 	{
 		double zz = projection(0,6) * mapping[i].first.col + projection(0,7) * mapping[i].first.row + 1;
@@ -129,10 +138,20 @@ int getInliners(CImg<double>& projection,SiftDescriptorMap& mapping)
 	return count;
 }
 
-void getProjection(Image& I1,Image& I2,string& name)
+/*
+	Helper to find the projection between two images I1 - query image
+	I2 - projected image
+*/
+void getProjection(const Image& I1,const Image& I2,const string& name)
 {	
 	SiftDescriptorMap mapping;
 	int count = Image::MatchSIFT(I1,I2,mapping);
+	
+	if(count <4)
+	{
+		cout<<" Image "<<name<<" cannot be formed due to insufficient Sift matchings"<<endl;
+		return ;
+	}
 	
 	assert(count >= 4);
 	// We need 4 points to get Projection
@@ -153,11 +172,12 @@ void getProjection(Image& I1,Image& I2,string& name)
 			//cout<<inliners<<endl;
 		}
 	}
-		
+	
+	assert(inliners > 0);		
 	//cout<<"Inliners = "<<inliners<<" , size = "<<mapping.size()<<endl;
 	
+	//Converting 8 X 1 matrix to 3 X 3 matrix
 	CImg<double> actualProjection(3,3);
-	
 	actualProjection(0,0) = bestProjection(0,0);
 	actualProjection(1,0) = bestProjection(0,1);
 	actualProjection(2,0) = bestProjection(0,2);
@@ -172,7 +192,10 @@ void getProjection(Image& I1,Image& I2,string& name)
 	projectiveTransform(I1,actualProjection,name);
 }
 
-void warpingApplication(Image& queryImage,vector<Image>& images)
+/*
+	Driver function to execute part-2 completely
+*/
+void warpingApplication(const Image& queryImage,const vector<Image>& images)
 {
 	for(int i = 0;i<images.size();++i)
 	{

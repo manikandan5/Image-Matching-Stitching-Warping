@@ -1,6 +1,11 @@
 #ifndef __SIFTHELPERS_H__
 #define __SIFTHELPERS_H__
 
+/*
+	Helper Class for part-1
+	Contains Class Image - which constitutes all the attrubutes and static function tas helpers to each question
+*/
+
 #include "CImg.h"
 #include <ctime>
 #include <iostream>
@@ -18,15 +23,7 @@
 using namespace cimg_library;
 using namespace std;
 
-struct SiftDescriptorCompare
-{
-	bool operator() (const SiftDescriptor& lhs, const SiftDescriptor& rhs) const
-	{
-		return lhs.row < rhs.row;
-	}
-};
-
-//typedef map<SiftDescriptor,SiftDescriptor,SiftDescriptorCompare> SiftDescriptorMap;
+//Set of matching descriptors
 typedef vector<pair<SiftDescriptor,SiftDescriptor>> SiftDescriptorMap;
 
 class Image
@@ -35,9 +32,9 @@ class Image
 	vector<SiftDescriptor> descriptors;
 	CImg<double> input_image;
 	vector<SiftDescriptor> newDescriptors;
-	
+		
 	public:
-	
+		
 	Image(string Name)
 	{
 		name = Name;
@@ -47,7 +44,7 @@ class Image
 		descriptors = Sift::compute_sift(gray);
 	}
 	
-	string getName()
+	string getName() const
 	{
 		return name;
 	}
@@ -73,7 +70,11 @@ class Image
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Static Helpers
 	
+	
+	//Given two Images and descriptors between them , the image is joined and descriptors are drawn with yellow line
+	// Reduced to distinguish between quantized projection function and the normal one.	
 	static void DrawImage(const Image& queryImage,const Image& image,SiftDescriptorMap& mapping,bool reduced = false)
 	{
 		CImg<double> queryImageData = queryImage.getImageData();
@@ -103,6 +104,11 @@ class Image
 			queryImageData.get_normalize(0,255).save("newsift.png");
 	}
 	
+	/*
+		code compute matching descriptors of queryimage in given image
+		mapping is out parameter.
+		Reduced to distinguish between quantized projection function and the normal one.	
+	*/
 	static int MatchSIFT(const Image& queryImage,const Image& image,SiftDescriptorMap& mapping,bool reduced = false)
 	{
 		vector<SiftDescriptor> queryDescriptors = queryImage.getDescriptors();
@@ -113,8 +119,6 @@ class Image
 			queryDescriptors = queryImage.getNewDescriptors();
 			imageDescriptors = image.getNewDescriptors();
 		}
-			
-		//double distance = 0.0;
 		
 		int count = 0;
 			
@@ -126,9 +130,10 @@ class Image
 			for(int j =0;j<imageDescriptors.size();++j)
 			{
 				double sum = 0;
-				for(int k = 0;k<128;++k)
+				//Euclidean Distance 
+				for(int k = 0;k<imageDescriptors[j].descriptor.size();++k)
 				{
-					sum+= pow(abs(queryDescriptors[i].descriptor[k] - imageDescriptors[j].descriptor[k]),2);
+					sum+= pow(queryDescriptors[i].descriptor[k] - imageDescriptors[j].descriptor[k],2);
 				}
 				
 				sum = sqrt(sum);
@@ -144,6 +149,7 @@ class Image
 				}
 			}
 			
+			//ratio of the Euclidean distances between the closest match and the second-closest match, and comparing to a threshold.
 			if(min/second_min < 0.7)
 			{
 				count++;
@@ -151,24 +157,30 @@ class Image
 				SiftDescriptor q = queryDescriptors[i];
 				SiftDescriptor im = imageDescriptors[descriptor];
 				mapping.push_back(make_pair(q,im));
-				
-				//distance+=min/second_min;
 			}
 			
 		}
 		
 		//cout<<"Count = "<<count<<endl;
 		Image::DrawImage(queryImage,image,mapping,reduced);
+		
 		return count;
 	}
 	
+	
+	/*
+		Driver Function to execute the part1. 
+	*/
 	static void descriptorMatching1(Image& queryImage,vector<Image>& images)
 	{
 		multimap<int,string> ranking;
 		for(int i = 0;i<images.size();++i)
 		{
 			SiftDescriptorMap mapping;
+			int start = clock();
 			int count = Image::MatchSIFT(queryImage,images[i],mapping);
+			int stop = clock();
+			//cout<<"Time consumption = "<<stop - start<<endl;
 			ranking.insert(make_pair(count,images[i].getName()));
 		}
 			
@@ -176,7 +188,7 @@ class Image
 		multimap<int,string>::reverse_iterator rankingEnd = ranking.rend();
 			
 		int top10 = 0;
-		cout<<"Matching Type 1"<<endl;
+		cout<<"Normal Sift Matching top 10 results"<<endl;
 		while(rankingStart != rankingEnd && ++top10 <= 10)
 		{
 			cout<<"Image = "<<rankingStart->second<<" Count = "<<rankingStart->first<<endl;
@@ -186,8 +198,9 @@ class Image
 	
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//part2
 	
-	
+	// Function to create uniform distribution k = is default
 	static vector<vector<float>> getUniformDistribution(int k = 50)
 	{
 		default_random_engine gen;
@@ -196,6 +209,7 @@ class Image
 		vector<vector<float>> distributionLists;
 		for(int i = 0;i<k;++i)
 		{
+			srand(time(NULL));
 			vector<float> distribution;
 			for(int j = 0;j<128;++j)
 			{
@@ -208,10 +222,14 @@ class Image
 		return distributionLists;
 	}
 	
-	
+	/*
+		applied quantized projection function for each descriptor to reduce the dimension ot the descriptor
+		from 128 to k;
+	*/
 	static void reduceSift(Image& image,vector<vector<float>>& distributionLists)
 	{
 		const vector<SiftDescriptor> imageDescriptors = image.getDescriptors();
+		//W is set
 		float w = 20;
 		
 		vector<SiftDescriptor> newDescriptors;
@@ -236,22 +254,25 @@ class Image
 		image.setNewDescriptors(newDescriptors);	
 	}
 	
+	/*
+		Driver function for quantized projection function Sift matching basically reduction in computation time.
+	*/
 	static void descriptorMatching2(Image& queryImage,vector<Image>& images)
 	{
 		vector<vector<float>> distributionLists = getUniformDistribution();
 		
+		//reduction in dimension
 		reduceSift(queryImage,distributionLists);
-		
-		/*cout<<queryImage.getDescriptors().size()<<endl;
-		cout<<queryImage.getNewDescriptors().size()<<endl;
-		cout<<queryImage.getNewDescriptors()[0].size()<<endl;*/
 		
 		multimap<int,string> ranking;
 		for(int i = 0;i<images.size();++i)
 		{
 			reduceSift(images[i],distributionLists);
 			SiftDescriptorMap mapping;
+			int start = clock();
 			int count = MatchSIFT(queryImage,images[i],mapping,true);
+			int stop = clock();
+			//cout<<"Time consumption = "<<stop - start<<endl;
 			ranking.insert(make_pair(count,images[i].getName()));
 		}
 			
@@ -259,7 +280,7 @@ class Image
 		multimap<int,string>::reverse_iterator rankingEnd = ranking.rend();
 			
 		int top10 = 0;
-		cout<<"Matching Type 2"<<endl;
+		cout<<"quantized projection function Sift matching results top 10"<<endl;
 		while(rankingStart != rankingEnd && ++top10 <= 10)
 		{
 			cout<<"Image = "<<rankingStart->second<<" Count = "<<rankingStart->first<<endl;
@@ -268,6 +289,9 @@ class Image
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
+	/*
+		Diriver function to take one image from each group and run the Sift match comparing to all 100 images given 
+	*/
 	static void randomRanking()
 	{
 		char buf1[1024];
@@ -299,28 +323,26 @@ class Image
 			return;
 		}
 		
+		//Sort images based on names
+		sort(imageNames.begin(),imageNames.end());
 		vector<Image> images;
 		for(int i = 0;i < imageNames.size();++i)
 		{
-			//if(imageNames[i].compare("part1_images/trafalgarsquare_5.jpg") != 0)
-			{
-				Image I(imageNames[i]);
-				images.push_back(I);
-			}
+			Image I(imageNames[i]);
+			images.push_back(I);	
 		}
 		
-		srand(time(NULL));
-		int randomNumber = rand() % imageNames.size();
-		Image queryImage = images[randomNumber];
-		//Image queryImage = Image("part1_images/trafalgarsquare_5.jpg");
-		cout<<queryImage.getName()<<endl;
-		
-		vector<Image>::iterator  selectedOne = images.begin()+randomNumber;
-		//cout<<selectedOne->getName()<<endl;		
-		images.erase(selectedOne);
-		
-		descriptorMatching1(queryImage,images);
-		
+		for(int i = 0;i<10;++i)
+		{
+			srand(time(NULL));
+			//Pick random images one from each bin of size 10.
+			int randomNumber = (10*i) + rand() % 10;
+			
+			Image queryImage = images[randomNumber];
+			cout<<endl;
+			cout<<"Query Image = "<<queryImage.getName()<<endl;
+			descriptorMatching1(queryImage,images);
+		}
 	}
 };
 
