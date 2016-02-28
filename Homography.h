@@ -5,6 +5,7 @@
 	Part-2 helpers
 */
 #include "SiftHelpers.h"
+#include <dirent.h>
 
 /*
 	Given Image and projection the image is projected and saved.
@@ -187,8 +188,7 @@ void getProjection(const Image& I1,const Image& I2,const string& name)
 	actualProjection(0,2) = bestProjection(0,6);
 	actualProjection(1,2) = bestProjection(0,7);
 	actualProjection(2,2) = 1;
-	
-	
+		
 	projectiveTransform(I1,actualProjection,name);
 }
 
@@ -199,8 +199,10 @@ void warpingApplication(const Image& queryImage,const vector<Image>& images)
 {
 	for(int i = 0;i<images.size();++i)
 	{
-		string name = "img_"+to_string(i+1)+ "-warped.png";
-		getProjection(queryImage,images[i],name);
+		string name = string(basename(images[i].getName().c_str()));
+		string ext = name.substr(name.find("."));
+		string newName = name.substr(0, name.find("."))+ "-warped"+ext;
+		getProjection(images[i],queryImage,newName);
 	}
 }
 
