@@ -132,7 +132,7 @@ int getInliners(CImg<double>& projection,const SiftDescriptorMap& mapping)
 		
 		//cout<<i+1<<" x-x'= "<<xx-mapping[i].second.col<<" y-y' = "<<yy-mapping[i].second.row<<endl; 		
 
-		if(abs(xx-mapping[i].second.col) <10.0 && abs(yy-mapping[i].second.row)<10.0)
+		if(abs(xx-mapping[i].second.col) <5.0 && abs(yy-mapping[i].second.row)<5.0)
 			count++;
 	}
 	return count;

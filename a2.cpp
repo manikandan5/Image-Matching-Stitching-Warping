@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 			if(argc < 4)
 			{
 				//Ranking of each image from a group chosen randomly.
-				Image::randomRanking();
+				Image::randomRanking(true);
 				return -1;
 			}
 			

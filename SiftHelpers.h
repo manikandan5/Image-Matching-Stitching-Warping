@@ -210,7 +210,7 @@ class Image
 	//part2
 	
 	// Function to create uniform distribution k = is default
-	static vector<vector<float>> getUniformDistribution(int k = 50)
+	static vector<vector<float>> getUniformDistribution(int k = 10)
 	{
 		default_random_engine gen;
 		normal_distribution<float> x(0.0,1.0);
@@ -239,7 +239,7 @@ class Image
 	{
 		const vector<SiftDescriptor> imageDescriptors = image.getDescriptors();
 		//W is set
-		float w = 20;
+		float w = 300;
 		
 		vector<SiftDescriptor> newDescriptors;
 		
@@ -301,7 +301,7 @@ class Image
 	/*
 		Diriver function to take one image from each group and run the Sift match comparing to all 100 images given 
 	*/
-	static void randomRanking()
+	static void randomRanking(bool reduced = false)
 	{
 		char buf1[1024];
 		
@@ -350,7 +350,10 @@ class Image
 			Image queryImage = images[randomNumber];
 			cout<<endl;
 			cout<<"Query Image = "<<queryImage.getName()<<endl;
-			descriptorMatching1(queryImage,images);
+			if(!reduced)
+				descriptorMatching1(queryImage,images);
+			else
+				descriptorMatching2(queryImage,images);
 		}
 	}
 };
