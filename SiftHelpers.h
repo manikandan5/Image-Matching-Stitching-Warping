@@ -210,7 +210,7 @@ class Image
 	//part2
 	
 	// Function to create uniform distribution k = is default
-	static vector<vector<float>> getUniformDistribution(int k = 10)
+	static vector<vector<float>> getUniformDistribution(int k = 50)
 	{
 		default_random_engine gen;
 		normal_distribution<float> x(0.0,1.0);
@@ -239,7 +239,7 @@ class Image
 	{
 		const vector<SiftDescriptor> imageDescriptors = image.getDescriptors();
 		//W is set
-		float w = 300;
+		float w = 400;
 		
 		vector<SiftDescriptor> newDescriptors;
 		
